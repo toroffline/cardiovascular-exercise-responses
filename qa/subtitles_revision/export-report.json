@@ -1,0 +1,339 @@
+{
+  "streams": [
+    {
+      "index": 0,
+      "codec_name": "h264",
+      "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+      "profile": "Constrained Baseline",
+      "codec_type": "video",
+      "codec_tag_string": "avc1",
+      "codec_tag": "0x31637661",
+      "width": 1920,
+      "height": 1080,
+      "coded_width": 1920,
+      "coded_height": 1080,
+      "closed_captions": 0,
+      "film_grain": 0,
+      "has_b_frames": 0,
+      "pix_fmt": "yuvj420p",
+      "level": 40,
+      "color_range": "pc",
+      "color_space": "bt709",
+      "color_transfer": "iec61966-2-1",
+      "color_primaries": "bt709",
+      "chroma_location": "left",
+      "field_order": "progressive",
+      "refs": 1,
+      "is_avc": "true",
+      "nal_length_size": "4",
+      "id": "0x1",
+      "r_frame_rate": "30/1",
+      "avg_frame_rate": "23040000/768017",
+      "time_base": "1/15360",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 4608102,
+      "duration": "300.006641",
+      "bit_rate": "2194505",
+      "bits_per_raw_sample": "8",
+      "nb_frames": "9000",
+      "extradata_size": 35,
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "language": "und",
+        "handler_name": "VideoHandler",
+        "vendor_id": "[0][0][0][0]"
+      }
+    },
+    {
+      "index": 1,
+      "codec_name": "aac",
+      "codec_long_name": "AAC (Advanced Audio Coding)",
+      "profile": "LC",
+      "codec_type": "audio",
+      "codec_tag_string": "mp4a",
+      "codec_tag": "0x6134706d",
+      "sample_fmt": "fltp",
+      "sample_rate": "48000",
+      "channels": 1,
+      "channel_layout": "mono",
+      "bits_per_sample": 0,
+      "id": "0x2",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/48000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 14400000,
+      "duration": "300.000000",
+      "bit_rate": "130593",
+      "nb_frames": "14064",
+      "extradata_size": 5,
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "language": "tha",
+        "handler_name": "SoundHandler",
+        "vendor_id": "[0][0][0][0]"
+      }
+    },
+    {
+      "index": 2,
+      "codec_name": "mov_text",
+      "codec_long_name": "MOV text",
+      "codec_type": "subtitle",
+      "codec_tag_string": "tx3g",
+      "codec_tag": "0x67337874",
+      "id": "0x3",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/1000000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 289063000,
+      "duration": "289.063000",
+      "bit_rate": "305",
+      "nb_frames": "73",
+      "extradata_size": 68,
+      "disposition": {
+        "default": 0,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "language": "tha",
+        "handler_name": "Thai subtitles"
+      }
+    },
+    {
+      "index": 3,
+      "codec_name": "bin_data",
+      "codec_long_name": "binary data",
+      "codec_type": "data",
+      "codec_tag_string": "text",
+      "codec_tag": "0x74786574",
+      "id": "0x4",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/1000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 300000,
+      "duration": "300.000000",
+      "bit_rate": "10",
+      "nb_frames": "10",
+      "extradata_size": 63,
+      "disposition": {
+        "default": 0,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "language": "eng",
+        "handler_name": "SubtitleHandler"
+      }
+    }
+  ],
+  "chapters": [
+    {
+      "id": 0,
+      "time_base": "1/1000",
+      "start": 0,
+      "start_time": "0.000000",
+      "end": 20000,
+      "end_time": "20.000000",
+      "tags": {
+        "title": "Cardiovascular responses"
+      }
+    },
+    {
+      "id": 1,
+      "time_base": "1/1000",
+      "start": 20000,
+      "start_time": "20.000000",
+      "end": 60000,
+      "end_time": "60.000000",
+      "tags": {
+        "title": "Dynamic exercise"
+      }
+    },
+    {
+      "id": 2,
+      "time_base": "1/1000",
+      "start": 60000,
+      "start_time": "60.000000",
+      "end": 105000,
+      "end_time": "105.000000",
+      "tags": {
+        "title": "Isometric exercise"
+      }
+    },
+    {
+      "id": 3,
+      "time_base": "1/1000",
+      "start": 105000,
+      "start_time": "105.000000",
+      "end": 145000,
+      "end_time": "145.000000",
+      "tags": {
+        "title": "Acute hemodynamic response"
+      }
+    },
+    {
+      "id": 4,
+      "time_base": "1/1000",
+      "start": 145000,
+      "start_time": "145.000000",
+      "end": 180000,
+      "end_time": "180.000000",
+      "tags": {
+        "title": "Why does blood pressure differ?"
+      }
+    },
+    {
+      "id": 5,
+      "time_base": "1/1000",
+      "start": 180000,
+      "start_time": "180.000000",
+      "end": 205000,
+      "end_time": "205.000000",
+      "tags": {
+        "title": "Give blood flow a window"
+      }
+    },
+    {
+      "id": 6,
+      "time_base": "1/1000",
+      "start": 205000,
+      "start_time": "205.000000",
+      "end": 240000,
+      "end_time": "240.000000",
+      "tags": {
+        "title": "Breathing changes the load"
+      }
+    },
+    {
+      "id": 7,
+      "time_base": "1/1000",
+      "start": 240000,
+      "start_time": "240.000000",
+      "end": 275000,
+      "end_time": "275.000000",
+      "tags": {
+        "title": "Prescribe with physiology"
+      }
+    },
+    {
+      "id": 8,
+      "time_base": "1/1000",
+      "start": 275000,
+      "start_time": "275.000000",
+      "end": 290000,
+      "end_time": "290.000000",
+      "tags": {
+        "title": "Same system. Different response."
+      }
+    },
+    {
+      "id": 9,
+      "time_base": "1/1000",
+      "start": 290000,
+      "start_time": "290.000000",
+      "end": 300000,
+      "end_time": "300.000000",
+      "tags": {
+        "title": "Evidence behind the explanation"
+      }
+    }
+  ],
+  "format": {
+    "filename": "D:\\CMU Masters Degree\\Sport science 2026\\cardiovascular_webgl\\Cardiovascular_Responses_Subtitles_Optional.mp4",
+    "nb_streams": 4,
+    "nb_programs": 0,
+    "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+    "format_long_name": "QuickTime / MOV",
+    "start_time": "0.000000",
+    "duration": "300.007000",
+    "size": "87468193",
+    "bit_rate": "2332430",
+    "probe_score": 100,
+    "tags": {
+      "major_brand": "isom",
+      "minor_version": "512",
+      "compatible_brands": "isomiso2avc1mp41",
+      "title": "Cardiovascular Responses: Dynamic vs. Isometric Exercise",
+      "artist": "Sports Science Educational Animation",
+      "encoder": "Lavf59.16.100",
+      "comment": "Original WebGL animation; synthesized Thai narration; qualitative physiological illustrations."
+    }
+  },
+  "validation": {
+    "subtitle_cues": 36,
+    "default_subtitles": "off",
+    "subtitle_text_and_timing_verified": true,
+    "full_decode_passed": true
+  }
+}

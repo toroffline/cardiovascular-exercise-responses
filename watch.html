@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>Cardiovascular Responses — Video Player</title>
+ <style>
+  *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#122b3b;color:#edf5fa;font:16px 'Segoe UI',sans-serif;display:grid;place-items:center}main{width:min(100%,1600px)}video{display:block;width:100%;aspect-ratio:16/9;background:#f6f9fb}video::cue{font-family:'Leelawadee UI','Tahoma',sans-serif;font-size:clamp(14px,1.62vw,31px);color:white;background:rgba(23,54,74,.94)}nav{display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:18px 24px}button{border:0;border-radius:24px;background:#e0edf4;color:#17364a;padding:12px 22px;font:600 15px 'Segoe UI',sans-serif;cursor:pointer}button[aria-pressed="true"]{background:#2685b7;color:white}a{color:#b8d9ef}p{margin:0;color:#bed0dc;font-size:14px}button:focus-visible,a:focus-visible{outline:3px solid #ed7569;outline-offset:4px}
+ </style>
+</head>
+<body>
+ <main>
+  <video id="video" controls preload="metadata" playsinline aria-label="Cardiovascular responses: dynamic versus isometric exercise" src="Cardiovascular_Responses_Subtitles_Optional.mp4"></video>
+  <nav>
+   <button id="cc" type="button" aria-pressed="false" aria-label="Show Thai subtitles">Thai subtitles: Off</button>
+   <p>Toggle subtitles at any time. Thai narration stays on.</p>
+   <a href="Cardiovascular_Responses_Subtitles_Optional.mp4" download>Download video</a>
+   <a href="Thai_subtitles.srt" download>Download subtitles</a>
+  </nav>
+ </main>
+ <script src="timeline.js"></script>
+ <script>
+  'use strict';
+  const video=document.querySelector('#video'),button=document.querySelector('#cc');
+  // Programmatic cues also work when this page is opened directly from a ZIP
+  // extraction. No network request for a VTT file or local web server is needed.
+  const thaiTrack=video.addTextTrack('subtitles','Thai','th');
+  for(const entry of CUES){
+   const cue=new VTTCue(entry.start,entry.end,entry.text);
+   cue.snapToLines=false;cue.line=86;cue.lineAlign='start';cue.position=50;cue.size=90;cue.align='center';
+   thaiTrack.addCue(cue);
+  }
+  thaiTrack.mode='disabled';
+  function syncButton(){const on=Array.from(video.textTracks).some(t=>t.mode==='showing');button.textContent='Thai subtitles: '+(on?'On':'Off');button.setAttribute('aria-pressed',String(on));button.setAttribute('aria-label',(on?'Hide':'Show')+' Thai subtitles');}
+  button.addEventListener('click',()=>{
+   const turnOn=!Array.from(video.textTracks).some(t=>t.mode==='showing');
+   for(const track of video.textTracks)track.mode='disabled';
+   thaiTrack.mode=turnOn?'showing':'disabled';syncButton();
+  });
+  video.textTracks.addEventListener('change',syncButton);
+  syncButton();
+ </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "gl": {
+    "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "WebKit WebGL"
+  },
+  "captions": 36,
+  "captionMaxLines": 2,
+  "atlasRows": 1630
+}

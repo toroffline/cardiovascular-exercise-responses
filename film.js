@@ -1,0 +1,163 @@
+/* Original WebGL animation. Canvas 2D is used only to rasterize glyphs into a GPU atlas. */
+'use strict';
+const canvas=document.querySelector('#film');
+const gl=canvas.getContext('webgl2',{alpha:false,antialias:true,preserveDrawingBuffer:true});
+if(!gl)throw Error('WebGL 2 is required');
+const W=1920,H=1080, C={bg:'#f6f9fb',ink:'#17364a',muted:'#627a8a',blue:'#2685b7',pale:'#e8f3fa',red:'#ed7569',pink:'#fdecea',white:'#ffffff',line:'#dce7ed',skin:'#e9bc9f',hair:'#263f51',deep:'#ae4b4b'};
+function shader(type,src){let s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
+const pr=gl.createProgram();gl.attachShader(pr,shader(gl.VERTEX_SHADER,`#version 300 es
+in vec2 pos;in vec2 uv;in vec4 color;out vec2 vuv;out vec4 vc;void main(){gl_Position=vec4(pos.x/960.-1.,1.-pos.y/540.,0,1);vuv=uv;vc=color;}`));
+gl.attachShader(pr,shader(gl.FRAGMENT_SHADER,`#version 300 es
+precision highp float;in vec2 vuv;in vec4 vc;uniform sampler2D atlas;out vec4 outColor;void main(){outColor=vc*texture(atlas,vuv);}`));gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(pr));gl.useProgram(pr);
+let buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);for(let [name,n,offset]of[['pos',2,0],['uv',2,8],['color',4,16]]){let p=gl.getAttribLocation(pr,name);gl.enableVertexAttribArray(p);gl.vertexAttribPointer(p,n,gl.FLOAT,false,32,offset);}
+gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+const atlas=document.createElement('canvas');atlas.width=4096;atlas.height=4096;const ac=atlas.getContext('2d');ac.fillStyle='white';ac.fillRect(0,0,4,4);
+const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+let dirty=true,ax=8,ay=8,ah=0,cache=new Map(),verts=[],opacity=1, now=0;
+const rgbCache={};function color(c){return rgbCache[c]||(rgbCache[c]=[parseInt(c.slice(1,3),16)/255,parseInt(c.slice(3,5),16)/255,parseInt(c.slice(5,7),16)/255]);}
+function v(x,y,c,u=1/4096,vv=1/4096,a=1){let cc=color(c);verts.push(x,y,u,vv,cc[0],cc[1],cc[2],opacity*a);}
+function tri(a,b,c,col){v(...a,col);v(...b,col);v(...c,col);}
+function poly(p,col){for(let i=1;i<p.length-1;i++)tri(p[0],p[i],p[i+1],col);}
+function rect(x,y,w,h,c){poly([[x,y],[x+w,y],[x+w,y+h],[x,y+h]],c);}
+function ellipse(x,y,rx,ry,c,n=40){for(let i=0;i<n;i++){let a=i/n*2*Math.PI,b=(i+1)/n*2*Math.PI;tri([x,y],[x+Math.cos(a)*rx,y+Math.sin(a)*ry],[x+Math.cos(b)*rx,y+Math.sin(b)*ry],c);}}
+function round(x,y,w,h,r,c){rect(x+r,y,w-2*r,h,c);rect(x,y+r,w,h-2*r,c);for(let [cx,cy]of[[x+r,y+r],[x+w-r,y+r],[x+r,y+h-r],[x+w-r,y+h-r]])ellipse(cx,cy,r,r,c,24);}
+function line(x,y,xx,yy,w,c){let a=Math.atan2(yy-y,xx-x),dx=Math.sin(a)*w/2,dy=Math.cos(a)*w/2;poly([[x-dx,y+dy],[xx-dx,yy+dy],[xx+dx,yy-dy],[x+dx,y-dy]],c);ellipse(x,y,w/2,w/2,c,16);ellipse(xx,yy,w/2,w/2,c,16);}
+function path(p,w,c){for(let i=1;i<p.length;i++)line(...p[i-1],...p[i],w,c);}
+function arrow(x,y,xx,yy,c,w=5){line(x,y,xx,yy,w,c);let a=Math.atan2(yy-y,xx-x);poly([[xx,yy],[xx-Math.cos(a-.55)*18,yy-Math.sin(a-.55)*18],[xx-Math.cos(a+.55)*18,yy-Math.sin(a+.55)*18]],c);}
+function text(str,x,y,size=30,c=C.ink,weight=400,align='left'){
+ str=String(str);let key=`${size}|${weight}|${str}`,e=cache.get(key);if(!e){ac.font=`${weight} ${size}px "Leelawadee UI", "Segoe UI", sans-serif`;let w=Math.ceil(ac.measureText(str).width)+8,h=Math.ceil(size*1.7)+8;if(ax+w>4090){ax=8;ay+=ah+3;ah=0;}if(ay+h>4090)throw Error('Text atlas full');ac.fillStyle='white';ac.textBaseline='alphabetic';ac.fillText(str,ax+4,ay+size*1.2);e={x:ax,y:ay,w,h};cache.set(key,e);ax+=w+3;ah=Math.max(ah,h);dirty=true;}
+ let xx=x-4-(align==='center'?e.w/2:align==='right'?e.w:0),yy=y-size*1.2,u=e.x/4096,vv=e.y/4096,uu=(e.x+e.w)/4096,v2=(e.y+e.h)/4096;
+ v(xx,yy,c,u,vv);v(xx+e.w,yy,c,uu,vv);v(xx+e.w,yy+e.h,c,uu,v2);v(xx,yy,c,u,vv);v(xx+e.w,yy+e.h,c,uu,v2);v(xx,yy+e.h,c,u,v2);
+}
+function pill(str,x,y,c=C.blue,bg=C.pale,w=0){let ww=w||str.length*15+40;round(x,y,ww,47,23,bg);text(str,x+ww/2,y+32,24,c,600,'center');}
+const clamp=x=>Math.max(0,Math.min(1,x)),smooth=x=>{x=clamp(x);return x*x*(3-2*x);};
+function reveal(age,delay,fn){let a=smooth((age-delay)/.65);if(a===0)return;let old=opacity;opacity*=a;fn();opacity=old;}
+function card(x,y,w,h,accent=C.blue){round(x,y+5,w,h,24,'#e9eff3');round(x,y,w,h,24,C.white);rect(x+25,y+24,5,30,accent);}
+function label(str,x,y,c=C.muted){text(str,x,y,24,c,600);}
+function metric(x,y,w,name,value,c=C.blue){round(x,y,w,79,16,c===C.blue?C.pale:C.pink);text(name,x+22,y+31,23,C.muted,500);text(value,x+w-20,y+56,34,c,650,'right');}
+function heart(x,y,s,t,c=C.red){s*=1+.065*Math.sin(t*2*Math.PI*1.5);let P=(a,b)=>[x+a*s,y+b*s];path([P(-8,-38),P(-8,-64),P(18,-77),P(41,-64),P(41,-43)],16*s,C.red);for(let z of[5,20,34])line(...P(z,-66),...P(z-3,-88),7*s,C.red);path([P(-27,-26),P(-44,-53),P(-57,-51)],14*s,C.blue);poly([P(-45,-27),P(-32,-47),P(-3,-41),P(14,-45),P(45,-21),P(47,10),P(27,42),P(4,66),P(-29,36),P(-45,8)],c);ellipse(x-19*s,y-20*s,30*s,29*s,c);ellipse(x+16*s,y-12*s,33*s,32*s,c);path([P(-2,-30),P(4,-2),P(-7,29),P(4,56)],3*s,'#ffd6ca');path([P(4,-2),P(29,7),P(34,24)],3*s,'#ffd6ca');}
+// One full stride contains two steps. The stance foot follows the moving belt;
+// a two-link IK chain keeps the thigh and shank lengths constant throughout.
+function runnerPose(t){
+ const frequency=170/120,phase=((t*frequency)%1+1)%1;
+ const hip=[0,4+5*Math.cos(4*Math.PI*(phase-.15))];
+ const shoulder=[14+1.2*Math.sin(phase*2*Math.PI),hip[1]-104];
+ const endAngle=.60,endX=-51-25*Math.cos(endAngle)+11*Math.sin(endAngle);
+ const endY=170-25*Math.sin(endAngle)-11*Math.cos(endAngle);
+ // u, ankle x/y, shoe pitch, and derivatives with respect to stride phase.
+ const recovery=[
+  [.40,endX,endY,.60,-270,0,0],
+  [.50,-75,96,.90,45,-450,0],
+  [.60,-49,83,.58,380,70,-4],
+  [.70,-4,108,.12,520,360,-3],
+  [.82,46,143,-.10,190,190,0],
+  [.90,50,153,-.06,-50,80,.7],
+  [1.00,32,159,0,-270,0,0]
+ ];
+ const hermite=(a,b,ma,mb,q,span)=>{
+  const q2=q*q,q3=q2*q;
+  return (2*q3-3*q2+1)*a+(q3-2*q2+q)*span*ma+(-2*q3+3*q2)*b+(q3-q2)*span*mb;
+ };
+ function leg(u){
+  let ankle,angle;
+  if(u<.4){
+   const stance=u/.4;angle=.6*smooth((stance-.70)/.30);
+   const toeX=57-108*stance;
+   ankle=[toeX-25*Math.cos(angle)+11*Math.sin(angle),170-25*Math.sin(angle)-11*Math.cos(angle)];
+  }else{
+   let j=0;while(j<recovery.length-2&&u>recovery[j+1][0])j++;
+   const a=recovery[j],b=recovery[j+1],span=b[0]-a[0],q=(u-a[0])/span;
+   ankle=[hermite(a[1],b[1],a[4],b[4],q,span),hermite(a[2],b[2],a[5],b[5],q,span)];
+   angle=hermite(a[3],b[3],a[6],b[6],q,span);
+  }
+  const dx=ankle[0]-hip[0],dy=ankle[1]-hip[1],distance=Math.hypot(dx,dy);
+  const thigh=83,shank=82,along=(thigh*thigh-shank*shank+distance*distance)/(2*distance);
+  const bend=Math.sqrt(Math.max(0,thigh*thigh-along*along));
+  const knee=[hip[0]+dx/distance*along+dy/distance*bend,hip[1]+dy/distance*along-dx/distance*bend];
+  return {u,knee,ankle,angle,distance,contact:u<.4};
+ }
+ function arm(u,far){
+  const swing=.04-.52*Math.cos(2*Math.PI*(u-.02));
+  const root=[shoulder[0]+(far?-5:2),shoulder[1]+3];
+  const elbow=[root[0]+53*Math.sin(swing),root[1]+53*Math.cos(swing)];
+  const forearm=Math.PI/2-swing-(1.63+.10*Math.sin(2*Math.PI*u));
+  const wrist=[elbow[0]+45*Math.cos(forearm),elbow[1]+45*Math.sin(forearm)];
+  return {root,elbow,wrist};
+ }
+ return {hip,shoulder,near:leg(phase),far:leg((phase+.5)%1),nearArm:arm(phase,false),farArm:arm((phase+.5)%1,true),beltSpeed:270*frequency};
+}
+function runner(x,y,s,t){
+ const pose=runnerPose(t),P=p=>[x+p[0]*s,y+p[1]*s];
+ const limb=(a,b,w,c)=>line(...P(a),...P(b),w*s,c);
+ function drawArm(a,c){limb(a.root,a.elbow,15,c);limb(a.elbow,a.wrist,13,c);ellipse(...P(a.wrist),7.5*s,7*s,c,20);}
+ function drawLeg(l,c){
+  limb(pose.hip,l.knee,23,c);limb(l.knee,l.ankle,17,c);
+  const F=(xx,yy)=>P([l.ankle[0]+xx*Math.cos(l.angle)-yy*Math.sin(l.angle),l.ankle[1]+xx*Math.sin(l.angle)+yy*Math.cos(l.angle)]);
+  poly([F(-14,2),F(-7,-5),F(6,-4),F(11,2),F(25,3),F(30,6),F(25,11),F(-13,11),F(-16,7)],c);
+  poly([F(-14,8.5),F(28,8.5),F(25,11),F(-13,11)],C.white);
+ }
+ // Far limbs go behind the torso; the near arm remains visible across the shirt.
+ drawArm(pose.farArm,'#ce9d80');drawLeg(pose.far,'#91a9b8');
+ drawLeg(pose.near,C.ink);
+ const h=pose.hip[1],sh=pose.shoulder;
+ poly([P([sh[0]-19,sh[1]-5]),P([sh[0]+22,sh[1]+1]),P([20,h-3]),P([-22,h-3])],C.blue);
+ ellipse(...P([sh[0]+1,sh[1]+4]),21*s,16*s,C.blue,28);
+ poly([P([-22,h-7]),P([21,h-4]),P([22,h+18]),P([-23,h+18])],C.ink);
+ limb([sh[0]+6,sh[1]-4],[sh[0]+10,h-128],18,C.skin);
+ const head=[sh[0]+13,h-153];
+ ellipse(...P(head),23*s,29*s,C.skin);
+ poly([P([head[0]-23,head[1]-5]),P([head[0]-20,head[1]-25]),P([head[0]+8,head[1]-29]),P([head[0]+22,head[1]-10]),P([head[0]+1,head[1]-14])],C.hair);
+ ellipse(...P([head[0]+17,head[1]+1]),2.5*s,2.5*s,C.hair,16);
+ poly([P([head[0]+20,head[1]+5]),P([head[0]+27,head[1]+11]),P([head[0]+19,head[1]+13])],C.skin);
+ drawArm(pose.nearArm,C.skin);
+ // The belt travels backwards at exactly the planted foot's contact speed.
+ const yy=y+170*s;
+ round(x-147*s,yy,325*s,23*s,10*s,C.ink);
+ line(x+142*s,yy,x+125*s,yy-190*s,12*s,C.line);
+ line(x+103*s,yy-190*s,x+165*s,yy-190*s,14*s,C.ink);
+ for(let i=0;i<7;i++){
+  const track=((i*46-t*pose.beltSpeed)%300+300)%300;
+  line(x+(-135+track)*s,yy+9*s,x+(-113+track)*s,yy+9*s,2*s,C.muted);
+ }
+ ellipse(x-110*s,yy+26*s,13*s,13*s,C.muted);ellipse(x+137*s,yy+26*s,13*s,13*s,C.muted);
+}
+function sitter(x,y,s,t){const P=(a,b)=>[x+a*s,y+b*s];rect(x-62*s,y-208*s,21*s,391*s,C.line);for(let i=0;i<7;i++)line(x-70*s,y+(-192+i*51)*s,x-87*s,y+(-176+i*51)*s,2*s,C.line);path([P(-13,-102),P(-15,4)],53*s,C.blue);path([P(-14,9),P(100,13),P(102,146)],24*s,C.ink);line(...P(101,146),...P(142,149),17*s,C.ink);path([P(-7,-95),P(28,-34),P(84,-14)],15*s,C.skin);line(...P(-13,-118),...P(-14,-140),20*s,C.skin);ellipse(...P(-13,-163),24*s,29*s,C.skin);poly([P(-37,-164),P(-31,-190),P(-4,-191),P(9,-174),P(-19,-176)],C.hair);ellipse(...P(5,-158),3*s,3*s,C.hair);let old=opacity;opacity*=.65+.15*Math.sin(t*2);line(...P(6,7),...P(87,12),18*s,C.red);opacity=old;line(x-75*s,y+173*s,x+170*s,y+173*s,5*s,C.line);}
+function vessel(x,y,w,h,t,compression=0,speed=95,muscle=true){
+ if(muscle){for(let side of[-1,1]){ellipse(x+w/2,y+side*(h*.83-compression*13),w*.49,h*.43,C.pink);for(let j=0;j<5;j++){let yy=y+side*(h*.76-compression*13)+j*5-10;line(x+42,yy,x+w-42,yy,2,'#efb4ad');}}}
+ const radius=xx=>h*.28*(1-compression*.80*Math.exp(-Math.pow((xx-.5)/.28,4)));
+ let top=[],bottom=[];for(let j=0;j<=55;j++){let q=j/55,r=radius(q);top.push([x+q*w,y-r]);bottom.unshift([x+q*w,y+r]);}poly([...top,...bottom],C.pink);path(top,7,C.red);path(bottom,7,C.red);
+ for(let i=0;i<18;i++){let q=((i/18+t*speed/w)%1+1)%1,xx=x+q*w,ry=radius(q);let yy=y+Math.sin(i*2.7)*(ry*.54);ellipse(xx,yy,12,Math.min(7,ry*.3),C.red,20);ellipse(xx,yy,5,Math.min(2.2,ry*.12),'#f7b0a5',12);}
+ for(let i=0;i<4;i++){let q=((i/4+t*.08)%1);arrow(x+q*w,y+h*.55,x+q*w+26,y+h*.55,C.blue,3);}
+ if(compression>.35){arrow(x+w*.43,y-h*.98,x+w*.43,y-h*.36,C.red,4);arrow(x+w*.57,y+h*.98,x+w*.57,y+h*.36,C.red,4);}
+}
+function section(x,y,r,compression,c=C.red){ellipse(x,y,r,r,C.pink);ellipse(x,y,r*.70,r*.70*(1-compression*.79),c);ellipse(x,y,r*.56,r*.56*(1-compression*.79),C.white);}
+function wave(x,y,w,h,t,kind,c){line(x,y+h,x+w,y+h,2,C.line);line(x,y,x,y+h,2,C.line);let points=[];for(let i=0;i<=120;i++){let q=i/120,val=kind==='dynamic'?.5+.38*Math.sin(q*8*Math.PI-t*5):.80+.025*Math.sin(q*18+t);points.push([x+q*w,y+h-val*h]);}path(points,4,c);}
+function pairTitles(){pill('DYNAMIC · RUNNING',112,239,C.blue,C.pale,365);pill('ISOMETRIC · WALL SIT',1022,239,C.red,C.pink,380);}
+function intro(t,a,conclusion=false){card(82,213,850,654);card(988,213,850,654,C.red);pairTitles();runner(357,535,.92,t);sitter(1225,535,.92,t);vessel(585,488,275,110,t,(Math.sin(t*7)+1)*.26,100);vessel(1450,488,315,110,t,.85,23);text(conclusion?'CO ↑↑  ·  SVR ↓':'Contract → relax',506,774,33,C.blue,600,'center');text(conclusion?'Compression + pressor response':'Sustained contraction',1415,774,33,C.red,600,'center');text(conclusion?'More flow through dilated vessels':'Rhythmic muscle contraction',506,818,25,C.muted,400,'center');text(conclusion?'Manage intensity and breathing':'Continuous tension in the quadriceps',1415,818,25,C.muted,400,'center');if(!conclusion&&a>12){reveal(a,12,()=>{round(449,855,1022,50,24,C.ink);text('ทำไม cardiovascular response จึงแตกต่างกัน?',960,890,29,C.white,500,'center');});}}
+function dynamic(t,a){card(80,216,400,639);pill('RUNNING',112,241,C.blue,C.pale,175);runner(262,519,.95,t);text('Rhythmic contraction',280,777,27,C.blue,600,'center');wave(123,793,310,35,t,'dynamic',C.blue);card(506,216,827,639);label('INSIDE ACTIVE MUSCLE',550,271);vessel(555,459,723,157,t,(Math.sin(t*7)+1)*.22,125);text('Relaxation opens a window for flow',919,652,27,C.muted,400,'center');for(let i=0;i<4;i++)reveal(a,4+i*1.5,()=>pill(['CO₂','H⁺','K⁺','Adenosine'][i],557+i*176,304,C.red,C.pink,i===3?171:130));reveal(a,7,()=>{pill('Local vasodilation',726,687,C.blue,C.pale,350);text('Vessel radius ↑   →   Resistance ↓',919,796,30,C.blue,600,'center');});card(1360,216,478,639);label('TYPICAL RESPONSE',1400,272);let rows=[['Heart rate','↑↑'],['Stroke volume','↑'],['Cardiac output','↑↑'],['Systolic / diastolic BP','↑  /  ↔ or ↓'],['Muscle blood flow','↑↑↑']];rows.forEach((r,i)=>reveal(a,12+i*2,()=>metric(1390,297+i*104,418,...r)));}
+function isometric(t,a){card(80,216,400,639,C.red);pill('WALL SIT',112,241,C.red,C.pink,187);sitter(242,519,.95,t);text('Sustained tension',280,777,28,C.red,600,'center');wave(123,793,310,35,t,'static',C.red);card(506,216,827,639,C.red);label('MECHANICAL VESSEL COMPRESSION',550,271);vessel(555,460,550,160,t,.88,26);section(1210,461,68,.88);text('Compressed',1210,573,22,C.muted,500,'center');text('lumen',1210,602,22,C.muted,500,'center');reveal(a,6,()=>text('Intramuscular pressure ↑',919,667,33,C.red,600,'center'));reveal(a,13,()=>{text('Local resistance ↑  ·  Flow restricted',919,724,30,C.red,500,'center');text('Central command + muscle reflexes',919,796,27,C.muted,400,'center');});card(1360,216,478,639,C.red);label('INTENSITY DEPENDENT',1400,272);let rows=[['Heart rate','↑'],['Cardiac output','usually ↑'],['Systolic BP','↑↑'],['Diastolic BP','↑'],['Systemic resistance','↔ / may ↑']];rows.forEach((r,i)=>reveal(a,15+i*2,()=>metric(1390,297+i*104,418,...r,C.red)));text('Magnitude depends on intensity, muscle mass, duration, posture and breathing.',960,896,25,C.muted,400,'center');}
+function comparison(t,a){card(80,218,1758,643);round(635,246,492,74,18,C.pale);round(1162,246,635,74,18,C.pink);text('VARIABLE',118,294,25,C.muted,600);text('RUNNING',881,296,30,C.blue,650,'center');text('WALL SIT',1479,296,30,C.red,650,'center');let rows=[['Heart rate','↑↑','↑'],['Cardiac output','↑↑','usually ↑'],['Systolic BP','↑','↑↑'],['Diastolic BP','↔ / slight ↓','↑'],['Systemic vascular resistance','↓','higher relative / may ↑'],['Blood flow to active muscle','↑↑↑','restricted during contraction']];rows.forEach((r,i)=>reveal(a,1+i*4.5,()=>{let yy=374+i*77;if(i%2===0)round(101,yy-39,1714,65,10,'#f6f9fb');text(r[0],119,yy+3,28,C.ink,500);text(r[1],881,yy+5,32,C.blue,600,'center');text(r[2],1479,yy+4,i>3?28:32,C.red,600,'center');}));text('Typical trends, not a matched-intensity experiment. Arrow count is qualitative.',960,897,25,C.muted,400,'center');}
+function equations(t,a){round(258,226,1404,126,24,C.ink);text('MAP  ≈  Cardiac Output  ×  Systemic Vascular Resistance',960,305,44,C.white,600,'center');text('CO = HR × SV     •     Approximation when right atrial pressure is small',960,395,27,C.muted,400,'center');card(81,440,851,412);card(988,440,851,412,C.red);pill('RUNNING',119,466,C.blue,C.pale,180);pill('WALL SIT',1026,466,C.red,C.pink,195);heart(215,646,.70,t);heart(1117,646,.70,t*.85);vessel(354,648,499,112,t,.05,130,false);vessel(1257,648,499,112,t,.85,27,true);text('CO ↑↑    ×    SVR ↓',506,786,37,C.blue,650,'center');text('CO ↑    ×    SVR ↔ / ↑',1412,786,37,C.red,650,'center');text('MAP is mean pressure; SBP and DBP also depend on arterial compliance and pulsatile flow.',960,898,24,C.muted,400,'center');}
+function compression(t,a){let released=a>16,release=smooth((a-16)/1);card(82,218,850,610);card(988,218,850,610,C.red);pairTitles();vessel(132,477,750,175,t,(Math.sin(t*6)+1)*.39,145);vessel(1037,477,752,175,t,.9*(1-release),released?230:20);text('Intermittent compression',506,740,34,C.blue,600,'center');text(released?'Reactive hyperemia':'Sustained compression',1412,740,34,released?C.blue:C.red,600,'center');text('Contract → relax → blood flow',506,788,26,C.muted,400,'center');text(released?'Release → transient increase in flow':'Flow is limited while tension is high',1412,788,26,C.muted,400,'center');if(released)pill('AFTER RELEASE',1215,321,C.blue,C.pale,387);text('The amount of restriction depends on contraction intensity and local perfusion pressure.',960,884,25,C.muted,400,'center');}
+function lungs(x,y,s,held,t){let breath=held?1.08:1+.06*Math.sin(t*1.6);ellipse(x-46*s,y,37*s*breath,73*s*breath,C.pale);ellipse(x+46*s,y,37*s*breath,73*s*breath,C.pale);path([[x,y-129*s],[x,y-34*s],[x-29*s,y-5*s]],12*s,C.blue);path([[x,y-34*s],[x+29*s,y-5*s]],12*s,C.blue);if(held)line(x-13*s,y-111*s,x+13*s,y-111*s,10*s,C.red);else arrow(x,y-168*s,x,y-129*s,C.blue,4);heart(x+4*s,y+32*s,.55*s,t);path([[x-99*s,y+88*s],[x-50*s,y+106*s],[x,y+112*s],[x+50*s,y+106*s],[x+99*s,y+88*s]],5*s,held?C.red:C.blue);if(held){arrow(x-133*s,y-10*s,x-91*s,y-10*s,C.red,5);arrow(x+133*s,y-10*s,x+91*s,y-10*s,C.red,5);}}
+function valsalva(t,a){card(80,216,640,650);pill('BREATHE CONTINUOUSLY',111,243,C.blue,C.pale,460);lungs(399,546,1.35,false,t);text('Inhale → controlled exhale',400,790,29,C.blue,600,'center');card(746,216,1092,650,C.red);pill('STRAIN AGAINST A CLOSED GLOTTIS',779,243,C.red,C.pink,620);lungs(981,523,1.12,true,t);text('Thoracic pressure ↑↑',981,737,27,C.red,600,'center');text('Venous return changes',981,787,24,C.muted,400,'center');let x=1208,y=401,w=547,h=260;label('ARTERIAL PRESSURE · SCHEMATIC',1190,351);line(x,y+h*.53,x+w,y+h*.53,2,C.line);line(x,y,x,y+h,2,C.line);let pts=[[0,.53],[.1,.53],[.15,.19],[.20,.46],[.32,.77],[.46,.6],[.55,.45],[.62,.84],[.68,.36],[.73,.10],[.81,.25],[.92,.53],[1,.53]];let visible=clamp((a-6)/13),p=[];for(let i=0;i<pts.length;i++){if(pts[i][0]<=visible)p.push([x+pts[i][0]*w,y+pts[i][1]*h]);}if(p.length>1)path(p,5,C.red);['I','II','III','IV'].forEach((z,i)=>text(z,x+[.15,.40,.62,.79][i]*w,y+h+35,24,C.muted,600,'center'));text('Start    Strain    Release    Recovery',x+w/2,752,24,C.muted,400,'center');text('Phase-dependent fluctuations',x+w/2,803,28,C.red,600,'center');text('Heavy effort + vessel compression + breath holding can increase cardiovascular stress.',960,905,25,C.muted,400,'center');}
+function safety(t,a){card(80,216,485,650);sitter(263,520,.98,t);pill('BREATHE',170,776,C.blue,C.pale,280);let items=[['01','Breathe continuously','Exhale during effort; avoid unnecessary breath holding.'],['02','Avoid prolonged straining','Especially for beginners or people with cardiovascular risk.'],['03','Progress gradually','Adjust resistance, intensity and duration.'],['04','Monitor the response','HR, BP and symptoms; stop with warning signs.'],['05','Individualize the prescription','Screen high-risk and hypertensive individuals.']];items.forEach((r,i)=>reveal(a,i*4.1,()=>{let y=219+i*130;round(596,y,1242,112,18,C.white);ellipse(649,y+54,28,28,i===3?C.pink:C.pale);text(r[0],649,y+63,22,i===3?C.red:C.blue,600,'center');text(r[1],702,y+44,31,C.ink,600);text(r[2],702,y+83,25,C.muted);}));text('Warning signs: chest pain, dizziness, fainting or unusual breathlessness.',960,905,25,C.red,500,'center');}
+function refs(t,a){let items=[['MacDougall et al. · 1985','Arterial blood pressure response to heavy resistance exercise. J Appl Physiol. 58:785–790.','doi:10.1152/jappl.1985.58.3.785'],['Paluch et al. · 2024','Resistance Exercise Training: 2023 AHA Scientific Statement. Circulation. 149:e217–e231.','doi:10.1161/CIR.0000000000001189'],['ACSM · 12th edition','Guidelines for Exercise Testing and Prescription.','acsm.org/education-resources/books/guidelines-exercise-testing-prescription/'],['Cornelissen & Smart · 2013','Exercise Training for Blood Pressure: A Systematic Review and Meta-analysis. JAHA. 2:e004473.','doi:10.1161/JAHA.112.004473']];items.forEach((r,i)=>{let y=240+i*139;round(83,y,1753,125,18,C.white);text(r[0],114,y+37,30,C.blue,600);text(r[1],114,y+74,25,C.ink);text(r[2],114,y+106,22,C.muted);});text('Training effects on resting BP differ from the acute response during a contraction.',960,845,26,C.muted,500,'center');text('Understand the physiology → prescribe exercise safely.',960,925,37,C.ink,600,'center');}
+const scenes=[intro,dynamic,isometric,comparison,equations,compression,valsalva,safety,(t,a)=>intro(t,a,true),refs];
+const segmenter=new Intl.Segmenter('th',{granularity:'word'});let wrapCache=new Map();function wrap(s,max=1670,size=31){let key=s+size;if(wrapCache.has(key))return wrapCache.get(key);ac.font=`400 ${size}px "Leelawadee UI"`;let out=[],cur='';for(let obj of segmenter.segment(s)){let ss=obj.segment;if(ac.measureText(cur+ss).width>max&&cur){out.push(cur.trim());cur=ss;}else cur+=ss;}if(cur)out.push(cur.trim());wrapCache.set(key,out);return out;}
+function format(t){return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');}
+let subtitlesEnabled=false;
+window.setSubtitlesEnabled=function(enabled){
+ subtitlesEnabled=Boolean(enabled);
+ const button=document.querySelector('#subtitles');
+ if(button){button.textContent='Thai subtitles: '+(subtitlesEnabled?'On':'Off');button.setAttribute('aria-pressed',String(subtitlesEnabled));button.setAttribute('aria-label',(subtitlesEnabled?'Hide':'Show')+' Thai subtitles');}
+ draw(now);
+};
+function draw(t){now=t;verts=[];opacity=1;gl.viewport(0,0,W,H);let rgb=color(C.bg);gl.clearColor(...rgb,1);gl.clear(gl.COLOR_BUFFER_BIT);let idx=BRIEF.findIndex(s=>t>=s.start&&t<s.end);if(idx<0)idx=9;let s=BRIEF[idx],age=t-s.start;rect(0,0,1920,9,idx===2||idx===6?C.red:C.blue);text('SPORT SCIENCE   /   CARDIOVASCULAR PHYSIOLOGY',82,65,23,C.muted,600);text(String(idx+1).padStart(2,'0')+' / 10',1838,67,25,C.muted,600,'right');text(s.title,82,156,58,C.ink,650);text(s.chapter,1838,157,22,idx===2||idx===6?C.red:C.blue,650,'right');opacity=smooth(age/.7);scenes[idx](t,age);opacity=1;
+ let cue=subtitlesEnabled&&typeof CUES!=='undefined'?CUES.find(c=>t>=c.start&&t<c.end):null;if(cue){let ls=wrap(cue.text);round(82,929,1756,ls.length>1?98:79,18,C.ink);ls.slice(0,2).forEach((l,i)=>text(l,960,ls.length>1?965+i*40:978,31,C.white,400,'center'));}
+ rect(82,1047,1756,4,C.line);rect(82,1047,1756*t/300,4,idx===2||idx===6?C.red:C.blue);for(let ss of BRIEF)ellipse(82+1756*ss.start/300,1049,4,4,C.white,12);text('DYNAMIC  /  ISOMETRIC',82,1037,16,C.muted,600);text(format(t)+' / 5:00',1840,1037,16,C.muted,500,'right');
+ if(dirty){gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,atlas);dirty=false;}gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(verts),gl.DYNAMIC_DRAW);gl.drawArrays(gl.TRIANGLES,0,verts.length/8);}
+window.renderFrame=draw;window.GL_INFO={version:gl.getParameter(gl.VERSION),renderer:gl.getParameter(gl.RENDERER)};
+let play=document.querySelector('#play'),seek=document.querySelector('#seek'),audio=document.querySelector('#narration'),playing=false,start=0,position=0;
+document.querySelector('#subtitles').onclick=()=>window.setSubtitlesEnabled(!subtitlesEnabled);
+play.onclick=()=>{playing=!playing;play.textContent=playing?'Pause':'Play';if(playing){if(position>=300)position=0;start=performance.now()-position*1000;audio.currentTime=position;audio.play().catch(()=>{});}else{audio.pause();}};seek.oninput=()=>{position=Number(seek.value);start=performance.now()-position*1000;audio.currentTime=position;draw(position);};function loop(ts){if(playing){position=Math.min(299.99,audio.paused?(ts-start)/1000:audio.currentTime);if(position>=299.98){playing=false;audio.pause();play.textContent='Play';}draw(position);seek.value=position;document.querySelector('#time').textContent=format(position)+' / 5:00';}requestAnimationFrame(loop);}draw(0.9);requestAnimationFrame(loop);

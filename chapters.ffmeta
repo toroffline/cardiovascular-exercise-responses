@@ -1,0 +1,54 @@
+;FFMETADATA1
+title=Cardiovascular Responses: Dynamic vs. Isometric Exercise
+artist=Sports Science Educational Animation
+comment=Original WebGL animation; synthesized Thai narration; qualitative physiological illustrations.
+[CHAPTER]
+TIMEBASE=1/1000
+START=0
+END=20000
+title=Cardiovascular responses
+[CHAPTER]
+TIMEBASE=1/1000
+START=20000
+END=60000
+title=Dynamic exercise
+[CHAPTER]
+TIMEBASE=1/1000
+START=60000
+END=105000
+title=Isometric exercise
+[CHAPTER]
+TIMEBASE=1/1000
+START=105000
+END=145000
+title=Acute hemodynamic response
+[CHAPTER]
+TIMEBASE=1/1000
+START=145000
+END=180000
+title=Why does blood pressure differ?
+[CHAPTER]
+TIMEBASE=1/1000
+START=180000
+END=205000
+title=Give blood flow a window
+[CHAPTER]
+TIMEBASE=1/1000
+START=205000
+END=240000
+title=Breathing changes the load
+[CHAPTER]
+TIMEBASE=1/1000
+START=240000
+END=275000
+title=Prescribe with physiology
+[CHAPTER]
+TIMEBASE=1/1000
+START=275000
+END=290000
+title=Same system. Different response.
+[CHAPTER]
+TIMEBASE=1/1000
+START=290000
+END=300000
+title=Evidence behind the explanation

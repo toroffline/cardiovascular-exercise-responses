@@ -1,0 +1,52 @@
+[
+  {
+    "time": 5,
+    "changedPixels": 17361,
+    "changesOutsideRunner": 0
+  },
+  {
+    "time": 49,
+    "changedPixels": 13150,
+    "changesOutsideRunner": 0
+  },
+  {
+    "time": 92,
+    "changedPixels": 0,
+    "changesOutsideRunner": 0
+  },
+  {
+    "time": 139,
+    "changedPixels": 0,
+    "changesOutsideRunner": 0
+  },
+  {
+    "time": 172,
+    "changedPixels": 0,
+    "changesOutsideRunner": 0
+  },
+  {
+    "time": 201,
+    "changedPixels": 0,
+    "changesOutsideRunner": 0
+  },
+  {
+    "time": 232,
+    "changedPixels": 0,
+    "changesOutsideRunner": 0
+  },
+  {
+    "time": 270,
+    "changedPixels": 0,
+    "changesOutsideRunner": 0
+  },
+  {
+    "time": 284,
+    "changedPixels": 12875,
+    "changesOutsideRunner": 0
+  },
+  {
+    "time": 295,
+    "changedPixels": 0,
+    "changesOutsideRunner": 0
+  }
+]
